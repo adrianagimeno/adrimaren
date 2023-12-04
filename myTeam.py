@@ -19,7 +19,7 @@
 # purposes. The Pacman AI projects were developed at UC Berkeley, primarily by
 # John DeNero (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # For more info, see http://inst.eecs.berkeley.edu/~cs188/sp09/pacman.html
-# aghabhj
+
 import random
 import util
 
@@ -55,6 +55,7 @@ def create_team(first_index, second_index, is_red,
 # Agents #
 ##########
 
+
 class ReflexCaptureAgent(CaptureAgent):
     """
     A base class for reflex agents that choose score-maximizing actions
@@ -83,7 +84,6 @@ class ReflexCaptureAgent(CaptureAgent):
         best_actions = [a for a, v in zip(actions, values) if v == max_value]
 
         food_left = len(self.get_food(game_state).as_list())
-        print(food_left)
 
         if food_left <= 2:
             best_dist = 9999
@@ -146,19 +146,59 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
     def get_features(self, game_state, action):
         features = util.Counter()
         successor = self.get_successor(game_state, action)
-        food_list = self.get_food(successor).as_list()
-        features['successor_score'] = -len(food_list)  # self.getScore(successor)
 
-        # Compute distance to the nearest food
+        food_to_defend = self.get_food_you_are_defending(successor).as_list()   # food to defend
+        food_to_eat = self.get_food(successor).as_list()                        # food to eat
 
-        if len(food_list) > 0:  # This should always be True,  but better safe than sorry
-            my_pos = successor.get_agent_state(self.index).get_position()
-            min_distance = min([self.get_maze_distance(my_pos, food) for food in food_list])
-            features['distance_to_food'] = min_distance
+        my_state = successor.get_agent_state(self.index)
+        my_pos = my_state.get_position()
+
+        # self.getScore(successor)
+        features['successor_score'] = -len(food_to_eat)
+
+        # Distance to the nearest food to eat
+        distances_to_food = []
+
+        for f in food_to_eat:
+            dist = self.get_maze_distance(successor.get_agent_state(self.index).get_position(), f)
+            distances_to_food.append(dist)
+        
+        features['distance_to_food'] = min(distances_to_food)
+        
+        # Check if the agent is a Pacman (in enemy territory) or a ghost (in safe territory)
+        # features['is_pacman'] = int(game_state.get_agent_state(self.index).is_pacman)
+
+        # Distances to the nearest ghost and pacman opponents
+        distances_to_ghosts = []
+        distances_to_pacmans = []
+
+        enemies = [successor.get_agent_state(i) for i in self.get_opponents(successor)]
+        defenders = [a for a in enemies if not(a.is_pacman) and a.get_position() is not None]
+        invaders = [a for a in enemies if a.is_pacman and a.get_position() is not None]
+        # features['num_invaders'] = len(invaders)
+        features['num_defenders'] = len(defenders)
+
+        if len(defenders) > 0:
+            distances_to_ghosts = [self.get_maze_distance(my_pos, a.get_position()) for a in defenders]
+            features['defender_distance'] = min(distances_to_ghosts)
+            
+        # if len(invaders) > 0:
+        #     distances_to_pacmans = [self.get_maze_distance(my_pos, a.get_position()) for a in invaders]
+        #     features['invader_distance'] = min(distances_to_pacmans)
+        
+        features['num_carrying'] = successor.get_agent_state(self.index).num_carrying
+        
+        """# Check the distance to get to safety in our side of the grid
+        distance_to_safety = []
+
+        for x in 
+            distances_to_safety.append(self.get_maze_distance(successor.get_agent_state(self.index).get_position(), x)
+        features['distance_to_safety'] = min(distance_to_safety)"""
+
         return features
-
+        
     def get_weights(self, game_state, action):
-        return {'successor_score': 100, 'distance_to_food': -1}
+        return {'successor_score': 100, 'distance_to_food': -1, 'num_defenders': -1, 'defender_distance': -1, 'num_carrying': 1}
 
 
 class DefensiveReflexAgent(ReflexCaptureAgent):
