@@ -60,7 +60,6 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     A base class for reflex agents that choose score-maximizing actions
     """
-
     def __init__(self, index, time_for_computing=.1):
         super().__init__(index, time_for_computing)
         self.start = None
@@ -123,10 +122,12 @@ class ReflexCaptureAgent(CaptureAgent):
         """
         Returns a counter of features for the state
         """
-        features = util.Counter()
-        successor = self.get_successor(game_state, action)
-        features['successor_score'] = self.get_score(successor)
-        return features
+        # features = util.Counter()
+        # successor = self.get_successor(game_state, action)
+        # features['successor_score'] = self.get_score(successor)
+        # return features
+
+        
 
     def get_weights(self, game_state, action):
         """
@@ -164,6 +165,18 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
             distances_to_food.append(dist)
         
         features['distance_to_food'] = min(distances_to_food)
+
+        # Distance to the nearest power capsule to eat
+        
+        if self.get_capsules(game_state):
+            distances_to_capsule = []
+            capsules_to_eat = self.get_capsules(game_state)
+
+            for c in capsules_to_eat:
+                dist = self.get_maze_distance(successor.get_agent_state(self.index).get_position(), c)
+                distances_to_capsule.append(dist)
+            
+            features['distance_to_capsule'] = min(distances_to_capsule)
         
         # Check if the agent is a Pacman (in enemy territory) or a ghost (in safe territory)
         # features['is_pacman'] = int(game_state.get_agent_state(self.index).is_pacman)
@@ -187,6 +200,8 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         #     features['invader_distance'] = min(distances_to_pacmans)
         
         features['num_carrying'] = successor.get_agent_state(self.index).num_carrying
+        features['scared_timer'] = successor.get_agent_state(self.index).scared_timer
+        features['num_returned'] = successor.get_agent_state(self.index).num_returned
         
         """# Check the distance to get to safety in our side of the grid
         distance_to_safety = []
@@ -198,7 +213,7 @@ class OffensiveReflexAgent(ReflexCaptureAgent):
         return features
         
     def get_weights(self, game_state, action):
-        return {'successor_score': 100, 'distance_to_food': -1, 'num_defenders': -1, 'defender_distance': -1, 'num_carrying': 1}
+        return {'successor_score': 100, 'distance_to_food': -1, 'distance_to_capsule': -1, 'num_defenders': -1, 'defender_distance': -1, 'num_carrying': 1, 'scared_timer': 1, 'num_returned': 3}
 
 
 class DefensiveReflexAgent(ReflexCaptureAgent):
