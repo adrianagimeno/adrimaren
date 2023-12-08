@@ -144,6 +144,16 @@ class ReflexCaptureAgent(CaptureAgent):
         return None
 
 class OffensiveDefensive(ReflexCaptureAgent):
+    """
+    Our strategy is to have one agent defending and one attacking, but alternating them so 
+    that the one that is closest to the opponent's side of the grid is the attacker. This way, 
+    if our offensive agent is eaten, the deffensive one automatically becommes an attacker, and 
+    the new agent that comes out of our start point is a defensive agent. With this, we avoid losing 
+    the time that it takes for the new ghost to get to the opponent's side and since the new one 
+    starts in our side, it can just start defending it.
+    This switch is computed when we choose the best action.
+    We have modified the offensive agent with an A* strategy following the concepts in lab1.
+    """
     ### OFFENSIVE ###
     def nullHeuristic(state, problem = None):
         return 0
@@ -262,6 +272,12 @@ class OffensiveDefensive(ReflexCaptureAgent):
         my_dist = abs(self.start[0] - my_pos[0])
         other_dist = abs(self.start[0] - other_pos[0])
 
+        """ We compute the position of both our agents in the x axis, and then we compare them:
+                - if both agents are in the same x position, they are both offensive agents
+                - if one of the agents is further back than the other, it becomes a defensive agent and stays back
+                - if the agent that is closest to the opponent's side is eaten, the one defending becomes the 
+                  closest one and therefore turns into an offensive agent
+        """
         if my_dist >= other_dist:
             ### OFFENSIVE ###
             actions = game_state.get_legal_actions(self.index)
